@@ -84,7 +84,7 @@ public static class M01RealisticBuilder
         string outDir = ArgValue("-shotDir") ?? "Shots";
         Directory.CreateDirectory(outDir);
         EditorSceneManager.OpenScene(OutScene, OpenSceneMode.Single);
-        terrain = Object.FindFirstObjectByType<Terrain>();
+        terrain = Object.FindAnyObjectByType<Terrain>();
         var views = new (string name, Vector3 pos, Vector3 look)[]
         {
             ("1_player_north", new Vector3(0f, 1.6f, 0f), new Vector3(0f, 6f, 80f)),
@@ -975,7 +975,7 @@ public static class M01RealisticBuilder
     static void SetupLighting()
     {
         Light sun = null;
-        foreach (var l in Object.FindObjectsByType<Light>(FindObjectsSortMode.None)) if (l.type == LightType.Directional) sun = l;
+        foreach (var l in Object.FindObjectsByType<Light>()) if (l.type == LightType.Directional) sun = l;
         if (sun == null) sun = new GameObject("Directional Light").AddComponent<Light>();
         sun.type = LightType.Directional;
         sun.name = "Sun_Dawn";
