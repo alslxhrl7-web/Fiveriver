@@ -417,6 +417,7 @@ public static class M01RealisticBuilder
         }
         m.SetFloat("_Smoothness", smooth);
         m.SetFloat("_Metallic", 0f);
+        m.enableInstancing = true;
         AssetDatabase.CreateAsset(m, path);
         return m;
     }
@@ -667,7 +668,7 @@ public static class M01RealisticBuilder
                 am[y, x, 0] = wg / sum; am[y, x, 1] = wd / sum; am[y, x, 2] = wr / sum; am[y, x, 3] = wroad / sum;
 
                 if (steep < 30f && am[y, x, 0] > .45f)
-                    dens[y, x] = Mathf.RoundToInt(Mathf.Clamp01(am[y, x, 0] * (.35f + 1.1f * GN(wx * .25f + 9f, wz * .25f + 9f, 2, 85))) * 7f);
+                    dens[y, x] = Mathf.RoundToInt(Mathf.Clamp01(am[y, x, 0] * (.35f + 1.1f * GN(wx * .25f + 9f, wz * .25f + 9f, 2, 85))) * 4f);
             }
         // 스플랫맵과 디테일 레이어는 에셋이 만들어진 뒤에 써야 저장된다
         string tdPath = $"{Dir}/Terrain/M01_TerrainData.asset";
@@ -686,7 +687,7 @@ public static class M01RealisticBuilder
         terrain.drawInstanced = true;
         terrain.heightmapPixelError = 4f;
         terrain.basemapDistance = 400f;
-        terrain.detailObjectDistance = 90f;
+        terrain.detailObjectDistance = 60f;
         terrain.detailObjectDensity = 1f;
         terrain.treeDistance = 400f;
         terrain.treeBillboardDistance = 400f;
@@ -791,10 +792,9 @@ public static class M01RealisticBuilder
             MakeBlobPrefab("RL_RockB", 17, m.rock, new Vector3(.9f, .6f, 1.1f), .95f, true, false),
             MakeBlobPrefab("RL_RockC", 23, m.rock, new Vector3(.8f, .9f, .8f), .85f, true, false),
         };
-        td.treePrototypes = System.Array.ConvertAll(protos, p => new TreePrototype { prefab = p });
-
+        // 지형 트리 시스템은 URP에서 쓸 수 없는 레거시 셰이더(Nature/Soft Occlusion)를 요구하므로 일반 오브젝트로 배치한다.
+        var vegRoot = new GameObject("Vegetation").transform;
         var rng = new System.Random(1234);
-        var list = new List<TreeInstance>();
         int pines = 0, bushes = 0, rocks = 0, tries = 0;
         const int maxPine = 520, maxBush = 420, maxRock = 300;
         while ((pines < maxPine || bushes < maxBush || rocks < maxRock) && tries < 120000)
@@ -825,13 +825,12 @@ public static class M01RealisticBuilder
                 proto = 3 + rng.Next(3); ws = Rf(rng, .5f, 2.0f) * (steep > 25f ? 1.4f : 1f); hs = ws * Rf(rng, .7f, 1.2f); rocks++;
             }
             else continue;
-            list.Add(new TreeInstance
-            {
-                position = new Vector3(nx, 0f, nz), prototypeIndex = proto, widthScale = ws, heightScale = hs,
-                rotation = Rf(rng, 0f, 6.283f), color = Color.white, lightmapColor = Color.white,
-            });
+            var inst = (GameObject)PrefabUtility.InstantiatePrefab(protos[proto]);
+            inst.transform.SetParent(vegRoot, false);
+            inst.transform.SetPositionAndRotation(new Vector3(x, SnapY(x, z) - (proto >= 3 ? .15f * ws : 0f), z), Quaternion.Euler(0f, Rf(rng, 0f, 360f), 0f));
+            inst.transform.localScale = new Vector3(ws, hs, ws);
+            inst.isStatic = true;
         }
-        td.SetTreeInstances(list.ToArray(), true);
     }
 
     // =====================================================================
